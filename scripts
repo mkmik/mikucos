@@ -1,0 +1,5 @@
+depaolizer:
+
+sed "s/,\([^ ]\)/, \1/g" |  sed "s/;\([^ ]\)/; \1/g" | sed "s/\([^ <>\!]\)=\([^ ]\)/\1 = \2/g" | sed "s/for (/for(/g" | sed "s/){/) {/g"
+
+this filter removes paolo from the sources

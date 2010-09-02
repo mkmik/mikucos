@@ -1,0 +1,54 @@
+#!/bin/sh
+
+DEFS_FILE=Makefile.defs
+
+case "$1" in 
+    --help)
+	echo "Usage: ./configure [OPTION]..."
+	echo 
+	echo "Code generations:"
+	echo "  --debug             compile with debugging informations"
+	echo 
+	echo "Optional Features:"
+	echo "  --disable-uart           disables the uart" 
+	echo "  --disable-keysound       disables the keyclick sound" 
+	echo "  --enable-aleatory-cache  enable phasa's aleatory cache"
+	echo "  --enable-malloc-debugger enable debugging of mallocs and frees"
+	echo "  --enable-mal             enable Machine Abstraction Layer from Acaros"
+	echo 
+	exit
+	;;
+esac
+
+echo -n "DEFS=" >$DEFS_FILE
+
+while true; do
+    case "$1" in 
+	--debug)
+	    echo -n "-g3" >>$DEFS_FILE
+	    ;;
+	--disable-uart)
+	    echo -n "-DUSE_UART=0 " >>$DEFS_FILE
+	    ;;
+	--disable-keysound)
+	    echo -n "-DKEYSOUND=0 " >>$DEFS_FILE
+	    ;;
+	--enable-aleatory-cache)
+	    echo -n "-DALEATORY_CACHE=1 " >>$DEFS_FILE
+	    ;;
+	--enable-malloc-debugger)
+	    echo -n "-DMALLOC_DEBUGGER=1 " >>$DEFS_FILE
+	    ;;
+	--enable-mal)
+	    echo -n "-DUSE_MAL=1 " >>$DEFS_FILE
+	    ;;
+	"")
+	    break
+	    ;;
+    esac
+    shift
+done
+
+echo >>$DEFS_FILE
+
+echo "Configured"

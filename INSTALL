@@ -1,0 +1,46 @@
+COMPILING
+=========
+
+basically:
+
+$ ./configure
+$ make
+
+The ./configure script has a couple of optional features that
+can be tweaked. For example, uart is currently broken under bochs,
+so if you want debug the kernel in bochs (or run it on non intel hardware)
+you need to issue:
+
+$ ./configure --disable-uart
+
+
+INSTALLING
+==========
+
+if you have a working "sudo" program and
+you can become root, the makefile can mount the floppy image "grub.img"
+in loopback with:
+
+$ make loop_mount
+
+otherwise you should mount from root a floppy image in the "grub" subdirectory
+
+# mount -o loop path-to-your-floppy-image grub
+
+or mount a real floppy
+
+# mount /dev/floppy/0 grub
+
+Floppy image files are used primary by the emulators (bochs, vmware)
+but they can also be used to boot from network (tftp). I use network boot for
+my test machines because floppy are really too slooow.
+
+once the grub disk is mounted either way on the "grub" subdirectory
+you can use:
+
+$ make install
+
+which will copy all the kernel files to the disk.
+NOTE: you must provide a properly installed grub floppy/image. The makefile
+does not install grub on the floppy image. You can use a generic grub floppy,
+create your own or use the one provided in the binary distribution of mikuCos.

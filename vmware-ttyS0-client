@@ -1,0 +1,15 @@
+#!/usr/bin/perl -w
+require 5.002;
+use Socket;
+use strict;
+my ($rendezvous, $line);
+
+$rendezvous = shift || '/home/marko/vmware/mikucos/ttyS0';
+socket(SOCK, PF_UNIX, SOCK_STREAM, 0)       || die "socket: $!";
+connect(SOCK, sockaddr_un($rendezvous))     || die "connect: $!";
+
+while (defined($line = <SOCK>)) {
+    print $line;
+}
+
+exit;

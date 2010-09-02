@@ -1,0 +1,67 @@
+INTRODUZIONE
+============
+
+Questa directory contiene i sorgenti del
+sistema operativo KaOS (MikuCOS).
+ MikuCOS e' ancora in fase di sviluppo e non supporta ancora
+ancora  la gestione della memoria virtuale.
+
+COMPILAZIONE
+============
+
+eseguire:
+
+make
+
+INSTALLAZIONE
+=============
+
+La fase di compilazione genera il file
+eseguibile "mkernel". Per poter caricare il sistema
+bisogna usare un bootloader compatibile con lo standard
+"multiboot". Il bootloader "GRUB" e' altamente consigliato.
+
+GRUB
+----
+
+ dischetto
+ +-+-+-+-+-
+
+Per installare il kernel con grub basta copiarlo su un dischetto grub.
+(Probabilmente questi sorgenti sono stati distribuiti su un dischetto grub).
+Se il nome del file rimane "mkernel" il sistema parte automaticamente.
+
+Per ottenere la linea di comando grub basta premere il tasto "c" durante
+il menu. Verra' mostrato un prompt di comando che permette di caricare
+un kernel da diverse locazioni (floppy, altro floppy, hd, rete, ...).
+ Es:
+
+ kernel (fd0)/mkernel
+
+ immagine loopback (linux + vmware)
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+Per evitare di riavviare il computer dopo ogni modifica e' consigliato
+usare una macchina virtuale (Vmware) o un emulatore (bochs) che permette
+di caricare il sistema da un immagine di un dischetto. 
+ Linux permette di montare un file come se fosse un device: (solo root)
+
+mount -o loop grub.img grub
+make install
+
+ Il vmware deve essere impostato per usare un'"file immagine" invece di /dev/fd0
+per il floppy device.
+
+BOCHS
+=====
+
+anche bochs 2.0.2 funziona
+
+eseguire 
+
+dd if=/dev/zero of=bochsdisk.img bs=1024 count=10240
+
+per creare l'immagine disco per il grub.
+
+COPYRIGHT
+

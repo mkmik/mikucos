@@ -1,0 +1,30 @@
+non per forza in ordine di imporatanza
+not for force in order of importantness :-)
+
+1) I/O hd/floppy (direct io, pm bios)
+2) vfs
+3) VGA, VESA, VBE3
+4) APIC and MP (SMP) + apic timer
+5) PCI IRQ + bridge init & enumeration
+6) uart on bochs (base address, probabilmente)
+7) "console" handling  (terminal emulation)
+  ansi control chars and/or vt100 control chars.
+  Layer on top of vga and uart
+  not needed fulll posix tty support
+8) ps/2 support. implemented but non va
+9) rtl8139 driver (polling e/o interrupt)
+10) filesystem. (senza grassi)
+11) ensoniq audio
+12) usb (almeno enumeration)
+13) synchronization primitives (mutex, semaphores, spinlocks, ...)
+14) sparc port :-)
+15) alpha port :-)
+16) mips (indigo2) port :-)
+17) find a powerpc gratis e poi ne parliamo... :-)
+18) integrate uIP (need 13)
+19) framebuffer console (need 7) + acaros logo + insetticida
+20) live kernel debugger (interface with gdb, serial) (difficile)
+21) crash dump interface (difficile)
+22) (SSS) simple stupid shell. per far vedere agli ignoranti che questo
+    e' un sistema operativo, senno non si capisce.
+23) better keymap (scancode > ascii) translation (modular tables?)

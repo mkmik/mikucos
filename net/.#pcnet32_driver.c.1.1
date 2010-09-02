@@ -1,0 +1,337 @@
+#include <net/pcnet32_driver.h>
+#include <pci.h>
+#include <libc.h>
+#include <uart.h>
+#include <io.h>
+#include <timer.h>
+#include <hal.h>
+#include <net/ip.h>
+#include <checksum.h>
+#include <device.h>
+#include <net/arp.h>
+#include <byteorder.h>
+#include <thread.h>
+#include <net/arp.h>
+#include <libc.h>
+
+void pcnet32_print_status(struct pci_dev* dev);
+void pcnet32_reset(struct pci_dev* dev);
+void pcnet32_print_arp(struct pcnet32_arp *pkt);
+
+
+static void print_mac();
+
+struct pcnet32_init_block init_block __attribute__((aligned(32)));
+
+char rx_buf[4096];
+char tx_buf[4096];
+
+
+static struct pcnet32_rx_desc rx_desc[PCNET32_RING_SIZE] __attribute__((aligned(16)));
+static struct pcnet32_tx_desc tx_desc[PCNET32_RING_SIZE] __attribute__((aligned(16)));;
+static frame_space_t f_buff_rx[PCNET32_RING_SIZE];
+static frame_space_t f_buff_tx[PCNET32_RING_SIZE];
+
+
+
+u_int32_t mymac[4];
+
+u_int8_t* mac = (u_int8_t*)mymac;
+
+
+struct pcnet32_arp* arp_pkt=(struct pcnet32_arp*)f_buff_rx;
+struct pcnet32_arp* arp_reply=(struct pcnet32_arp*)f_buff_tx;
+
+
+
+CREATE_ISR_DISPATCHER(pcnet32);
+
+u_int16_t read_csr(u_int16_t base, u_int16_t address) {
+  outw_p(address, base + PCNET32_RAP);
+  return inw(base + PCNET32_RDP);
+}
+
+u_int16_t read_bcr(u_int16_t base, u_int16_t address) {
+  outw_p(address, base + PCNET32_RAP);
+  return inw(base + PCNET32_BDP);
+}
+
+void write_csr(u_int16_t base, u_int16_t address, u_int16_t value) {
+  outw_p(address, base + PCNET32_RAP);
+  outw_p(value, base + PCNET32_RDP);
+}
+
+void write_bcr(u_int16_t base, u_int16_t address, u_int16_t value) {
+  outw_p(address, base + PCNET32_RAP);
+  outw_p(value, base + PCNET32_BDP);
+}
+
+void pcnet32_print_status(struct pci_dev* dev) {
+  u_int16_t csr0;
+  
+  printf("CSR0 %x:  ", csr0 = read_csr(dev->io, PCNET32_CSR0));
+  if(csr0 & PCNET32_INIT)
+    printf("INIT ");
+  if(csr0 & PCNET32_STOP)
+    printf("STOP ");
+  if(csr0 & PCNET32_STRT)
+    printf("START ");
+  if(csr0 & PCNET32_IDON)
+    printf("INIT_DONE ");
+  if(csr0 & PCNET32_RXON)
+    printf("RXON ");
+  if(csr0 & PCNET32_TXON)
+    printf("TXON ");
+  if(csr0 & PCNET32_INTR)
+    printf("INT_R ");
+  if(csr0 & PCNET32_INEA)
+    printf("INT_EA ");
+  if(csr0 & PCNET32_TDMD)
+    printf("INT_TDMD ");
+
+  if(csr0 & PCNET32_TINT)
+    printf("INT_TINT ");
+  if(csr0 & PCNET32_RINT)
+    printf("INT_RINT ");
+  if(csr0 & PCNET32_MERR)
+    printf("INT_MERR ");
+  if(csr0 & PCNET32_MISS)
+    printf("INT_MISS ");
+  if(csr0 & PCNET32_CERR)
+    printf("INT_CERR ");
+  if(csr0 & PCNET32_BABL)
+    printf("INT_BABL ");
+  if(csr0 & PCNET32_ERR)
+    printf("INT_ERR ");
+
+  printf("\n");
+}
+
+static void print_mac() {
+  int i;
+  printf("Reading MAC address from ROM: %x", mac[0]);
+  for(i=1; i<6; i++)
+    printf(":%x", mac[i]);
+  printf("\n");
+  uprintf("Reading MAC address from ROM: %x", mac[0]);
+  for(i=1; i<6; i++)
+    uprintf(":%x", mac[i]);
+  uprintf("\n");
+}
+
+void pcnet32_reset(struct pci_dev* dev) {
+  inl(dev->io + 0x18);
+}
+
+void pcnet32_cisr() {
+  printf("pcnet32 isr\n");
+  uprintf("pcnet32 isr\n");
+}
+
+
+void pcnet32_device_init(device_t* this){
+
+  pci_dev_t  *dev;
+  int i;
+  u_int16_t pci_command;
+  dev = private(this)->pci;
+  
+  uprintf("AMD Pcnet32 ethernet interface at %x:%x.%x\n", dev->bus, dev->dev, dev->fn);
+  uprintf("Mem %p, I/O %p irq %d\n", dev->memory, dev->io, dev->irq);
+
+  pcnet32_reset(dev);
+
+  /* 32bit mode */
+  write_bcr(dev->io, 20, 2); 
+
+  /* the card  mac address */
+  for(i=0; i<4; i++) {
+     mymac[i] = inl(dev->io + i*4);
+  }
+
+  print_mac();
+  
+
+  /* enable bus mastering (for DMA ring access) */
+  pci_bios_read_word(dev, PCI_COMMAND, &pci_command);
+  pci_bios_write_word(dev, PCI_COMMAND, pci_command | PCI_COMMAND_MASTER);
+
+  /* abilitiamo gli interreupt */
+  set_isr(0x20 + dev->irq, pcnet32_isr);
+  enable_irq(dev->irq);
+
+  pcnet32_print_status(dev);
+
+  /* mettiamo su l' "init block" */
+ 
+  init_block.mode = 0x000; // 0=all, 1=tx, 2=rx, 3=none
+  init_block.tlen_res = 0;
+  init_block.rlen_res = 0;
+  init_block.tlen = PCNET32_RING_SIZE_BITS;
+  init_block.rlen = PCNET32_RING_SIZE_BITS;
+  //init_block.tlen = 0;
+  //init_block.rlen = 0;
+  for(i=0; i<6; i++)
+    init_block.phys_addr[i] = mac[i];
+  init_block.filter[0] = 0;
+  init_block.filter[1] = 0;
+  init_block.rx_ring = (u_int32_t)rx_desc;
+  init_block.tx_ring = (u_int32_t)tx_desc;
+
+  
+  for(i=0;i<PCNET32_RING_SIZE;i++){
+    tx_desc[i].base = (u_int32_t)&f_buff_tx[i];
+    tx_desc[i].length = -(int16_t)ETH_MTU;
+    //    tx_desc[i].status = 0x0;
+    tx_desc[i].status = 0x300;
+    tx_desc[i].misc = 0;
+    
+    rx_desc[i].base = (u_int32_t)&f_buff_rx[i];
+    rx_desc[i].buf_length = -(int16_t)ETH_MTU;
+    rx_desc[i].status = 0x0000;
+  }
+  write_csr(dev->io, PCNET32_IADR_LO, (u_int32_t)(&init_block) & 0xFFFF);
+  write_csr(dev->io, PCNET32_IADR_HI, (u_int32_t)(&init_block) >> 16);
+  write_csr(dev->io, PCNET32_CSR4, 0x0915);
+  write_csr(dev->io, PCNET32_CSR0, PCNET32_INIT); // initialize
+
+  /* aspettiamo porcodio  */
+  i=0;
+  while(i++ < 10000)
+    if(read_csr(dev->io, 0) & PCNET32_IDON)
+      goto init_done;    
+  printf("timeout\n");
+ init_done:
+  
+  write_csr(dev->io, PCNET32_CSR0, PCNET32_STRT | PCNET32_IDON);
+
+  pcnet32_print_status(dev);
+  xprintf("AMD pcnet32: I'm ready to run on the net\n");
+  thread_create(pcnet32_ether_test, this, 0);
+		//  pcnet32_ether_test(this);
+}
+
+
+/*void pcnet32_ether_test(device_t* this) {
+  int tx_waiting = 0;
+  int rx_waiting = 0;
+  int i;
+  tx_desc[0].status = 0x300;
+  tx_waiting = 0;
+
+  rx_desc[0].status |= 0x8000;
+  rx_waiting = 1;
+
+
+  while(1) {
+
+    write_csr(private(this)->pci->io, PCNET32_CSR0, 
+	      read_csr(private(this)->pci->io, PCNET32_CSR0));
+    //xprintf("csr writen(%x)\n", rx_desc[0].status);
+    if(tx_waiting && !(tx_desc[0].status & 0x8000)) {
+      xprintf("packed sent\n");
+      tx_waiting = 0;
+    }	    
+    if(rx_waiting && !(rx_desc[0].status & 0x8000)) {
+      xprintf("packed arrived (%x)\n", rx_desc[0].status);
+      if (arp_pkt[0].type == cpu_to_net16(0x806) ) {
+	xprintf("got arp for ip %x\n", arp_pkt->target_ip);
+	if (arp_pkt[0].target_ip ==  private(this)->ip){
+	  memcpy(arp_reply, arp_pkt, sizeof(struct pcnet32_arp));  
+	  memcpy(arp_reply->dst, arp_pkt->src, 6);
+	  memcpy(arp_reply->src, mac, 6);
+	  arp_reply->op=0x200;
+	  memcpy(arp_reply->sender_eth, mac, 6);
+	  arp_reply->sender_ip= private(this)->ip;
+	  memcpy(arp_reply->target_eth, arp_pkt->sender_eth, 6);
+	  arp_reply->target_ip=arp_pkt->sender_ip;
+	  
+	  tx_desc[0].status |= 0x8000; // resend
+	  tx_waiting = 1;
+	  	  
+	  xprintf("sono io \n");
+	}
+      }
+      xprintf("eth type %x (cpu %x)\n", (u_int16_t)arp_pkt->type,
+	      net16_to_cpu(arp_pkt->type)); 
+	
+      rx_desc[0].status |= 0x8000;
+    }
+    //pcnet32_print_status(dev);
+  }
+  xprintf("FINE\n");
+  }*/
+
+
+
+void pcnet32_ether_test(device_t* this) {
+  int tx_waiting = 0;
+  int rx_waiting = 0;
+  int i;
+  for(i = 0; i < PCNET32_RING_SIZE; i++) 
+    tx_desc[i].status = 0x300;
+  tx_waiting = 0;
+  
+  for(i = 0; i < PCNET32_RING_SIZE; i++) 
+    rx_desc[i].status |= 0x8000;
+  rx_waiting = 1;
+  
+
+  while(1) {
+    for(i = 0; i < PCNET32_RING_SIZE; i++) {
+      struct pcnet32_arp * arp_pkt = (struct pcnet32_arp*)&f_buff_rx[i];
+
+      write_csr(private(this)->pci->io, PCNET32_CSR0, 
+		read_csr(private(this)->pci->io, PCNET32_CSR0));
+
+      //xprintf("csr writen(%x)\n", rx_desc[0]i.status);
+      if(tx_waiting && !(tx_desc[i].status & 0x8000)) {
+	xprintf("packed sent\n");
+	tx_waiting = 0;
+      }	    
+      if(rx_waiting && !(rx_desc[i].status & 0x8000)) {
+	xprintf("packed arrived (%x)\n", rx_desc[i].status);
+	if (arp_pkt->type == cpu_to_net16(0x806) ) {
+	  xprintf("got arp for ip %x\n", arp_pkt->target_ip);
+	  if (arp_pkt->target_ip ==  private(this)->ip){
+	    pcnet32_make_arp(this);  	  
+	    tx_waiting = 1;
+	  }
+	}
+	xprintf("eth type %x (cpu %x)\n", (u_int16_t)arp_pkt->type,
+		net16_to_cpu(arp_pkt->type)); 
+	pcnet32_print_arp(arp_pkt);
+
+	rx_desc[i].status |= 0x8000;
+      }
+      //pcnet32_print_status(dev);
+    }
+    //xprintf("FINE\n");
+  }
+}
+
+  
+void pcnet32_make_arp(device_t* this){
+
+  memcpy(arp_reply, arp_pkt, sizeof(struct pcnet32_arp));  
+  memcpy(arp_reply->dst, arp_pkt->src, 6);
+  memcpy(arp_reply->src, mac, 6);
+  arp_reply->op=0x200;
+  memcpy(arp_reply->sender_eth, mac, 6);
+  arp_reply->sender_ip= private(this)->ip;
+  memcpy(arp_reply->target_eth, arp_pkt->sender_eth, 6);
+  arp_reply->target_ip=arp_pkt->sender_ip;
+  tx_desc[0].status |= 0x8000; // resend
+
+  xprintf("sono io \n");
+}
+
+
+void pcnet32_print_arp(struct pcnet32_arp *pkt){
+  uprintf("eth dest:%x\n", pkt->dst);
+  uprintf("eth src:%x\n", pkt->src);
+  uprintf("eth type:%x\n", pkt->type);
+  //  uprintf("eth payload:%x\n", *(u_int32_t*)(pkt->ip_payload));
+  hexdump(pkt, 48);
+}
+

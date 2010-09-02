@@ -1,0 +1,23 @@
+cat.o: cat.c user_programs.h ../stdio.h ../libc.h ../types.h ../video.h \
+  ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../file_api.h \
+  ../file.h ../list.h ../x86.h ../config.h ../avl.h
+fdisk.o: fdisk.c user_programs.h ../stdio.h ../libc.h ../types.h \
+  ../video.h ../libc_strtol.h ../ctype.h ../debug.h ../uart.h \
+  ../file_api.h ../file.h ../list.h ../x86.h ../config.h ../avl.h \
+  ../device.h ../block.h ../driver.h ../invoke.h ../devfs.h ../mbr.h \
+  ../process.h ../thread.h ../dispatcher.h ../timer.h ../malloc.h \
+  ../vmalloc/vmhdr.h ../vmalloc/ast_common.h ../vmalloc/FEATURE/vmalloc \
+  ../vmalloc/vmalloc.h ../spin_lock.h
+ls.o: ls.c user_programs.h ../stdio.h ../libc.h ../types.h ../video.h \
+  ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../file_api.h \
+  ../file.h ../list.h ../x86.h ../config.h ../avl.h
+mount.o: mount.c user_programs.h ../stdio.h ../libc.h ../types.h \
+  ../video.h ../libc_strtol.h ../ctype.h ../debug.h ../uart.h \
+  ../file_api.h ../file.h ../list.h ../x86.h ../config.h ../avl.h
+uname.o: uname.c user_programs.h ../stdio.h ../libc.h ../types.h \
+  ../video.h ../libc_strtol.h ../ctype.h ../debug.h ../uart.h \
+  ../file_api.h ../file.h ../list.h ../x86.h ../config.h ../avl.h \
+  ../version.h
+vesa.o: vesa.c user_programs.h ../stdio.h ../libc.h ../types.h ../video.h \
+  ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../file_api.h \
+  ../file.h ../list.h ../x86.h ../config.h ../avl.h

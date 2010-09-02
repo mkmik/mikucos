@@ -1,0 +1,30 @@
+checksum.o: checksum.c ../checksum.h ../net/ip.h ../types.h ../device.h \
+  ../list.h ../x86.h ../config.h ../avl.h ../libc.h ../video.h \
+  ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../block.h ../driver.h \
+  ../invoke.h
+ether_driver.o: ether_driver.c ../net/ether_driver.h ../driver.h \
+  ../types.h ../list.h ../x86.h ../config.h ../avl.h ../libc.h ../video.h \
+  ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../invoke.h \
+  ../device.h ../block.h ../net/ether.h ../net/ether_private.h \
+  ../malloc.h ../vmalloc/vmhdr.h ../vmalloc/ast_common.h \
+  ../vmalloc/FEATURE/vmalloc ../vmalloc/vmalloc.h ../net/ip.h
+ip.o: ip.c ../net/ip.h ../types.h ../device.h ../list.h ../x86.h \
+  ../config.h ../avl.h ../libc.h ../video.h ../libc_strtol.h ../ctype.h \
+  ../debug.h ../uart.h ../block.h ../driver.h ../invoke.h ../malloc.h \
+  ../vmalloc/vmhdr.h ../vmalloc/ast_common.h ../vmalloc/FEATURE/vmalloc \
+  ../vmalloc/vmalloc.h
+pcnet32.o: pcnet32.c ../net/pcnet32.h ../driver.h ../types.h ../list.h \
+  ../x86.h ../config.h ../avl.h ../libc.h ../video.h ../libc_strtol.h \
+  ../ctype.h ../debug.h ../uart.h ../invoke.h ../device.h ../block.h \
+  ../pci.h ../pci_names.h ../pci_ids.h ../net/pcnet32_driver.h \
+  ../net/pcnet32_private.h ../malloc.h ../vmalloc/vmhdr.h \
+  ../vmalloc/ast_common.h ../vmalloc/FEATURE/vmalloc ../vmalloc/vmalloc.h \
+  ../net/ip.h
+pcnet32_driver.o: pcnet32_driver.c ../net/pcnet32_driver.h ../list.h \
+  ../x86.h ../types.h ../config.h ../device.h ../avl.h ../libc.h \
+  ../video.h ../libc_strtol.h ../ctype.h ../debug.h ../uart.h ../block.h \
+  ../driver.h ../invoke.h ../net/pcnet32_private.h ../pci.h ../io.h \
+  ../timer.h ../hal.h ../net/ip.h ../checksum.h ../net/arp.h \
+  ../byteorder.h ../thread.h ../dispatcher.h ../malloc.h \
+  ../vmalloc/vmhdr.h ../vmalloc/ast_common.h ../vmalloc/FEATURE/vmalloc \
+  ../vmalloc/vmalloc.h ../spin_lock.h
